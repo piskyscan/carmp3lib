@@ -102,8 +102,7 @@ static void _cb(int gpio, int level, uint32_t tick, void *user)
 		}
 		else
 		{
-			// dont want to repeat after fail
-			dataPtr->lastFailed = true;
+			// ignore
 		}
 	}
 	break;
@@ -236,12 +235,11 @@ static void _cb(int gpio, int level, uint32_t tick, void *user)
 	}
 }
 
-
+userData memory;
 
 int initialise_ir_receiver(int irPort, SUCCESSPOINT successFunction, FAILPOINT failFunction, void *callerData)
 {
 	//	int irPort = 17;
-	userData memory;
 	int ret;
 
 	memory.state = IR_INIT;
