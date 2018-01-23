@@ -9,4 +9,3 @@ add_library(carmp3lib SHARED carmp3lib.c)
 INSTALL(TARGETS carmp3lib        DESTINATION "/usr/local/lib" )
     
 INSTALL(FILES carmp3lib.h         DESTINATION "/usr/local/include")
-o you
