@@ -13,7 +13,13 @@
 #include <math.h>
 #include <time.h>
 #include <stdbool.h>
+
+#ifdef USE_PIGPIO
 #include <pigpio.h>
+#else
+#include <wiringPi.h>
+#endif
+
 #include "carmp3lib.h"
 
 
@@ -39,6 +45,7 @@ typedef struct userData
 	int other;
 	int memory[2];
 	int bitsSoFar;
+	int port;
 	int lastFailed;
 
 	SUCCESSPOINT successFunction;
@@ -47,10 +54,17 @@ typedef struct userData
 
 } userData;
 
+userData memory;
 
 void cleanup()
 {
+#ifdef 	USE_PIGPIO
 	gpioTerminate();
+#else
+
+
+#endif
+
 }
 
 static int bigNumber = 0xfffff;
@@ -235,26 +249,14 @@ static void _cb(int gpio, int level, uint32_t tick, void *user)
 	}
 }
 
-userData memory;
 
-int initialise_ir_receiver(int irPort, SUCCESSPOINT successFunction, FAILPOINT failFunction, void *callerData)
+int intiialise_ir(int irPort)
 {
-	//	int irPort = 17;
 	int ret;
 
-	memory.state = IR_INIT;
-	memory.lastTick = 0;
-	memory.successFunction = successFunction;
-	memory.failureFunction = failFunction;
-	memory.callerData = callerData;
 
 
-	if (successFunction == NULL)
-	{
-		fprintf(stderr, "cannot have null success function\n");
-		exit(1);
-	}
-
+#ifdef 	USE_PIGPIO
 	ret = gpioInitialise();
 
 	if (ret  < 0)
@@ -262,12 +264,70 @@ int initialise_ir_receiver(int irPort, SUCCESSPOINT successFunction, FAILPOINT f
 		fprintf(stderr, "pigpio initialisation failed with %d\n",ret);
 		exit(1);
 	}
+#else
+	wiringPiSetupGpio();
+#endif
+
+
+	memory.state = IR_INIT;
+	memory.lastTick = 0;
+	memory.port = irPort;
 
 	atexit(&cleanup);
 
+#ifdef 	USE_PIGPIO
 	gpioSetMode(irPort, PI_INPUT);
+#else
+	pinMode(irPort, OUTPUT);
+#endif
 
-	gpioSetAlertFuncEx(irPort, _cb, &memory);
+
+}
+
+int get_useconds()
+{
+	int seconds,usec;
+
+	struct timeval val;
+
+	gettimeofday(&val, NULL);
+
+	seconds = val.tv_sec;
+
+	usec = val.tv_usec;
+	return usec + 1000000 * seconds;
+}
+
+void wiring_interupt()
+{
+
+	int usec = get_useconds();
+	int value;
+	value = digitalRead(memory.port);
+
+	_cb(memory.port, value, usec, &memory);
+
+}
+
+int initialise_ir_receiver( SUCCESSPOINT successFunction, FAILPOINT failFunction, void *callerData)
+{
+	int ret;
+
+	memory.successFunction = successFunction;
+	memory.failureFunction = failFunction;
+	memory.callerData = callerData;
+
+	if (successFunction == NULL)
+	{
+		fprintf(stderr, "cannot have null success function\n");
+		exit(1);
+	}
+
+#ifdef USE_PIGPIO
+	gpioSetAlertFuncEx(memory.port , _cb, &memory);
+#else
+	wiringPiISR(memory.port, INT_EDGE_BOTH,  wiring_interupt);
+#endif
 
 	return 0;
 }
