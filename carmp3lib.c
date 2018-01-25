@@ -14,6 +14,7 @@
 #include <math.h>
 #include <time.h>
 #include <stdbool.h>
+#include <sys/time.h>
 
 #ifdef USE_PIGPIO
 #include <pigpio.h>
@@ -251,40 +252,6 @@ static void _cb(int gpio, int level, uint32_t tick, void *user)
 }
 
 
-int intiialise_ir(int irPort)
-{
-	int ret;
-
-
-
-#ifdef 	USE_PIGPIO
-	ret = gpioInitialise();
-
-	if (ret  < 0)
-	{
-		fprintf(stderr, "pigpio initialisation failed with %d\n",ret);
-		exit(1);
-	}
-#else
-	wiringPiSetupGpio();
-#endif
-
-
-	memory.state = IR_INIT;
-	memory.lastTick = 0;
-	memory.port = irPort;
-
-	atexit(&cleanup);
-
-#ifdef 	USE_PIGPIO
-	gpioSetMode(irPort, PI_INPUT);
-#else
-	pinMode(irPort, OUTPUT);
-#endif
-
-
-}
-
 int get_useconds()
 {
 	int seconds,usec;
@@ -310,9 +277,34 @@ void wiring_interupt()
 
 }
 
-int initialise_ir_receiver( SUCCESSPOINT successFunction, FAILPOINT failFunction, void *callerData)
+int initialise_ir_receiver(int irPort, SUCCESSPOINT successFunction, FAILPOINT failFunction, void *callerData)
 {
 	int ret;
+
+#ifdef 	USE_PIGPIO
+	ret = gpioInitialise();
+
+	if (ret  < 0)
+	{
+		fprintf(stderr, "pigpio initialisation failed with %d\n",ret);
+		exit(1);
+	}
+#else
+	wiringPiSetupGpio();
+#endif
+
+
+	memory.state = IR_INIT;
+	memory.lastTick = 0;
+	memory.port = irPort;
+
+	atexit(&cleanup);
+
+#ifdef 	USE_PIGPIO
+	gpioSetMode(irPort, PI_INPUT);
+#else
+	pinMode(irPort, OUTPUT);
+#endif
 
 	memory.successFunction = successFunction;
 	memory.failureFunction = failFunction;
