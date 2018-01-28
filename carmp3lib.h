@@ -18,6 +18,6 @@ extern int initialise_ir_receiver(int irPort, SUCCESSPOINT successFunction, FAIL
 
 extern void terminate_ir_receiver();
 
-
+extern void setupCallback();
 
 #endif /* CARMP3LIB_H_ */

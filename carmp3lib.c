@@ -72,7 +72,7 @@ void cleanup()
 static int bigNumber = 0xfffff;
 static int timeStep = 500;
 
-static void _cb(int gpio, int level, uint32_t tick, void *user)
+void _cb(int gpio, int level, uint32_t tick, void *user)
 {
 	int modTick;
 	int deltaT;
@@ -266,6 +266,8 @@ int get_useconds()
 	return usec + 1000000 * seconds;
 }
 
+#ifndef USE_PIGPIO
+
 void wiring_interupt()
 {
 
@@ -276,6 +278,17 @@ void wiring_interupt()
 	_cb(memory.port, value, usec, &memory);
 
 }
+#endif
+
+void setupCallback()
+{
+#ifdef USE_PIGPIO
+	gpioSetAlertFuncEx(memory.port , _cb, &memory);
+#else
+	wiringPiISR(memory.port, INT_EDGE_BOTH,  wiring_interupt);
+#endif
+}
+
 
 int initialise_ir_receiver(int irPort, SUCCESSPOINT successFunction, FAILPOINT failFunction, void *callerData)
 {
@@ -303,7 +316,9 @@ int initialise_ir_receiver(int irPort, SUCCESSPOINT successFunction, FAILPOINT f
 #ifdef 	USE_PIGPIO
 	gpioSetMode(irPort, PI_INPUT);
 #else
-	pinMode(irPort, OUTPUT);
+	pinMode(irPort, INPUT);
+	pullUpDnControl(irPort, PUD_DOWN);
+
 #endif
 
 	memory.successFunction = successFunction;
@@ -316,12 +331,7 @@ int initialise_ir_receiver(int irPort, SUCCESSPOINT successFunction, FAILPOINT f
 		exit(1);
 	}
 
-#ifdef USE_PIGPIO
-	gpioSetAlertFuncEx(memory.port , _cb, &memory);
-#else
-	wiringPiISR(memory.port, INT_EDGE_BOTH,  wiring_interupt);
-#endif
-
+	setupCallback();
 	return 0;
 }
 
