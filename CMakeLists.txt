@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 2.6)
 
 project (carmp3lib)
 
-# add_executable(carmp3lib carmp3lib.cpp)
+add_executable(ir_receive carmp3lib.c main.c)
 
 add_library(carmp3lib SHARED carmp3lib.c)
     
